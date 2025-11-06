@@ -1,26 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>YouTube Downloader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>YouTube Downloader</h1>
+        <h1>📥 YouTube Downloader</h1>
         <form action="/download" method="post">
             <div class="input-group">
-                <input type="text" name="url" placeholder="Enter YouTube URL" required>
-                <span class="arrow" onclick="toggleDropdown()">⇩</span>
+                <input type="text" name="url" placeholder="ইউটিউব লিংক দিন..." required>
+                <button type="button" class="arrow" onclick="toggleDropdown()">📂</button>
             </div>
 
             <div id="format-dropdown" class="dropdown hidden">
-                <label><input type="radio" name="format" value="mp4" checked> MP4 (Video)</label><br>
-                <label><input type="radio" name="format" value="m4a"> M4A (Audio)</label><br>
-                <label><input type="radio" name="format" value="mp3"> MP3 (Audio)</label>
+                <label><input type="radio" name="format" value="mp4" checked> 🎥 MP4 (ভিডিও)</label><br>
+                <label><input type="radio" name="format" value="m4a"> 🎧 M4A (অডিও)</label><br>
+                <label><input type="radio" name="format" value="mp3"> 🔊 MP3 (অডিও)</label>
             </div>
 
-            <button type="submit">Download</button>
+            <button type="submit" class="download-btn">✅ ডাউনলোড করুন</button>
         </form>
     </div>
 
