@@ -1,8 +1,18 @@
 from flask import Flask, render_template, request, send_file
-import yt_dlp
 import os
 import shutil
-import socket  # ✅ IP detect করার জন্য
+import socket
+import sys
+import subprocess
+
+# ✅ রানটাইমে yt-dlp অটো আপডেট
+def auto_update_ytdlp():
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"])
+        import yt_dlp
+        print(f"✅ yt-dlp updated to version: {yt_dlp.__version__}")
+    except Exception as e:
+        print(f"⚠️ yt-dlp auto-update failed: {e}")
 
 app = Flask(__name__)
 
@@ -23,6 +33,7 @@ def index():
 
 @app.route('/download', methods=['POST'])
 def download_video():
+    import yt_dlp   # ✅ আপডেটের পর নতুন ভার্সন ইমপোর্ট হবে
     url = request.form['url']
     format_type = request.form['format']  # 'mp4', 'm4a', 'mp3'
 
@@ -72,6 +83,9 @@ def download_video():
         return f"Download failed: {filename} not found", 500
 
 if __name__ == "__main__":
+    # ✅ প্রথমেই yt-dlp আপডেট হবে
+    auto_update_ytdlp()
+
     ip = get_ip()
     print(f"✅ Flask server running at: http://{ip}:5000")
 
