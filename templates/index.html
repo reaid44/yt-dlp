@@ -2,13 +2,13 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <title>ইউটিউব ডাউনলোডার</title>
+    <title>REAID SARDAR</title></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>📥 ইউটিউব ভিডিও ডাউনলোড করুন</h1>
+        <h1>📥 DOWNLOAD</h1>
 
         <div class="input-group">
             <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
@@ -17,7 +17,7 @@
             </button>
         </div>
 
-        <div id="status" class="status-text"></div>
+        <div id="status" class="status-text">⏳ প্রসেসিং হচ্ছে<span id="dots"></span></div>
 
         <div id="format-options" class="dropdown hidden">
             <button onclick="download('mp4')">🎥 MP4</button>
@@ -31,6 +31,12 @@
         </div>
 
         <script>
+            let dotCount = 0;
+            setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                document.getElementById("dots").innerText = ".".repeat(dotCount);
+            }, 500);
+
             function startProcessing() {
                 const url = document.getElementById("urlInput").value;
                 if (!url) return alert("⚠️ ইউটিউব লিংক দিন");
