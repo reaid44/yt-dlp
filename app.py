@@ -39,15 +39,25 @@ def prepare():
     outtmpl = 'downloads/temp.%(ext)s'
 
     try:
-        with yt_dlp.YoutubeDL({'format': format_str, 'outtmpl': outtmpl, 'quiet': True}) as ydl:
+        ydl_opts = {
+            'format': format_str,
+            'outtmpl': outtmpl,
+            'quiet': True,
+            'noplaylist': True  # ✅ টাইম কমানোর জন্য
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             mp4_file = ydl.prepare_filename(info)
             last_files['mp4'] = mp4_file
 
-            # MP3 extract
+            # ✅ MP3 conversion background এ চালানো হচ্ছে
             mp3_file = mp4_file.replace(".mp4", ".mp3")
             if shutil.which("ffmpeg"):
-                os.system(f"ffmpeg -i \"{mp4_file}\" -vn -ab 192k \"{mp3_file}\"")
+                subprocess.Popen([
+                    "ffmpeg", "-i", mp4_file,
+                    "-vn", "-ab", "192k", mp3_file
+                ])
                 last_files['mp3'] = mp3_file
 
         return jsonify({"ready": True})
