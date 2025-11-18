@@ -9,34 +9,55 @@
 <body>
     <div class="container">
         <h1>📥 ইউটিউব ভিডিও ডাউনলোড করুন</h1>
-        <form action="/download" method="post">
-            <div class="input-group">
-                <input type="text" name="url" placeholder="ইউটিউব লিংক দিন..." required>
-                <button type="button" class="arrow" onclick="toggleDropdown()">
-                    <img src="/static/icons/red-arrow.png" alt="Arrow" class="arrow-icon">
-                </button>
-            </div>
 
-            <div id="format-dropdown" class="dropdown hidden">
-                <label><input type="radio" name="format" value="mp4" checked> 🎥 MP4 (ভিডিও)</label>
-                <label><input type="radio" name="format" value="m4a"> 🎧 M4A (অডিও)</label>
-                <label><input type="radio" name="format" value="mp3"> 🔊 MP3 (অডিও)</label>
-            </div>
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
+            <button type="button" class="arrow" onclick="startProcessing()">
+                <img src="/static/icons/red-arrow.png" alt="Arrow" class="arrow-icon">
+            </button>
+        </div>
 
-            <button type="submit" class="download-btn">🚀 ডাউনলোড শুরু করুন</button>
-        </form>
+        <div id="status" class="status-text"></div>
+
+        <div id="format-options" class="dropdown hidden">
+            <button onclick="download('mp4')">🎥 MP4</button>
+            <button onclick="download('mp3')">🔊 MP3</button>
+            <button onclick="download('both')">🎬 MP4-MP3</button>
+        </div>
 
         <div class="preview">
             <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল">
             <p class="video-title">🎬 Big Buck Bunny UHD</p>
         </div>
-    </div>
 
-    <script>
-        function toggleDropdown() {
-            const dropdown = document.getElementById("format-dropdown");
-            dropdown.classList.toggle("hidden");
-        }
-    </script>
+        <script>
+            function startProcessing() {
+                const url = document.getElementById("urlInput").value;
+                if (!url) return alert("⚠️ ইউটিউব লিংক দিন");
+
+                document.getElementById("status").innerText = "⏳ প্রসেসিং হচ্ছে...";
+                document.getElementById("format-options").classList.add("hidden");
+
+                fetch("/prepare", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ready) {
+                        document.getElementById("status").innerText = "✅ ফাইল প্রস্তুত!";
+                        document.getElementById("format-options").classList.remove("hidden");
+                    } else {
+                        document.getElementById("status").innerText = "❌ ডাউনলোড ব্যর্থ হয়েছে";
+                    }
+                });
+            }
+
+            function download(type) {
+                window.location.href = `/download?type=${type}`;
+            }
+        </script>
+    </div>
 </body>
 </html>
