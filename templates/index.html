@@ -4,96 +4,65 @@
     <meta charset="UTF-8">
     <title>REAID SARDAR — Downloader v2.3</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Fonts: Segoe UI fallback + Noto Sans Bengali -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
-
-    <!-- External CSS -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <header class="topbar">
-            <h1>📥 DOWNLOAD</h1>
-            <button class="theme-toggle" id="themeToggle" aria-label="থিম পরিবর্তন">🌗</button>
+            <h1>DOWNLOAD</h1>
+            <button class="theme-toggle" id="themeToggle">থিম</button>
         </header>
 
-        <p class="subtitle">ইউটিউব লিংক দিন, আমরা প্রসেস করব।</p>
+        <p class="subtitle">ইউটিউব লিংক দিন, তারপর প্রেস করুন</p>
 
-        <!-- Input -->
         <div class="input-group">
-            <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required aria-label="ইউটিউব লিংক">
-            <button type="button" class="arrow" onclick="startProcessing()" aria-label="প্রসেস শুরু">
+            <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
+            <button type="button" class="arrow" onclick="startProcessing()">
                 <img src="/static/icons/red-arrow.png" alt="Arrow" class="arrow-icon">
             </button>
         </div>
 
-        <!-- Status -->
-        <div id="status" class="status-text" role="status" aria-live="polite">
-            ⏳ প্রসেসিং হচ্ছে<span id="dots"></span>
+        <!-- Processing Animation -->
+        <div id="processing" class="processing hidden" aria-hidden="true">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
         </div>
 
         <!-- Format Options -->
         <div id="format-options" class="dropdown hidden" aria-hidden="true">
-            <button onclick="download('mp4')" class="btn-primary">🎥 MP4</button>
-            <button onclick="download('mp3')" class="btn-primary">🔊 MP3</button>
-            <button onclick="download('both')" class="btn-primary">🎬 MP4-MP3</button>
+            <button onclick="download('mp4')" class="btn-primary">MP4</button>
+            <button onclick="download('mp3')" class="btn-primary">MP3</button>
+            <button onclick="download('both')" class="btn-primary">MP4-MP3</button>
         </div>
 
         <!-- Preview -->
         <div class="preview">
             <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল" id="thumb">
-            <p class="video-title" id="videoTitle">🎬 Big Buck Bunny UHD</p>
-        </div>
-
-        <!-- Popup Modal -->
-        <div id="popup" class="popup hidden" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
-          <div class="popup-content">
-            <button class="close-btn" onclick="closePopup()" aria-label="বন্ধ করুন">×</button>
-            <h2 id="popupTitle">ℹ️ নোটিশ</h2>
-            <p id="popupMessage">আপনার ফাইল প্রস্তুত হয়েছে! এখন ডাউনলোড করতে পারেন।</p>
-            <div class="popup-actions">
-              <button class="btn-primary" onclick="closePopup()">ঠিক আছে</button>
-            </div>
-          </div>
+            <p class="video-title" id="videoTitle">Big Buck Bunny UHD</p>
         </div>
     </div>
 
-    <!-- Footer Version -->
     <footer class="footer">
-        <p>🔖 Version v2.3</p>
+        <p>Version v2.3</p>
     </footer>
 
-    <!-- JavaScript -->
     <script>
-    // Animated dots
-    let dotCount = 0;
-    setInterval(() => {
-        dotCount = (dotCount + 1) % 4;
-        document.getElementById("dots").innerText = ".".repeat(dotCount);
-    }, 500);
-
-    // Theme: auto-detect + toggle + persist
-    const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
     const themeToggle = document.getElementById("themeToggle");
+    const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
 
     function applyTheme(theme) {
-        const body = document.body;
-        if (theme === "light") body.classList.add("light");
-        else body.classList.remove("light");
+        document.body.classList.toggle("light", theme === "light");
         localStorage.setItem("theme", theme);
-        themeToggle.textContent = body.classList.contains("light") ? "🌞" : "🌗";
+        themeToggle.textContent = theme === "light" ? "লাইট" : "ডার্ক";
     }
 
     function initTheme() {
         const saved = localStorage.getItem("theme");
-        if (saved) {
-            applyTheme(saved);
-        } else {
-            applyTheme(prefersLight.matches ? "light" : "dark");
-        }
+        applyTheme(saved || (prefersLight.matches ? "light" : "dark"));
     }
 
     themeToggle.addEventListener("click", () => {
@@ -101,65 +70,42 @@
         applyTheme(current === "light" ? "dark" : "light");
     });
 
-    prefersLight.addEventListener("change", (e) => {
-        const saved = localStorage.getItem("theme");
-        if (!saved) applyTheme(e.matches ? "light" : "dark");
+    prefersLight.addEventListener("change", e => {
+        if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark");
     });
 
-    // Popup helpers
-    function showPopup(message) {
-        document.getElementById("popupMessage").innerText = message;
-        document.getElementById("popup").classList.remove("hidden");
-    }
-    function closePopup() {
-        document.getElementById("popup").classList.add("hidden");
-    }
-
-    // Prepare + update UI
-    async function startProcessing() {
+    function startProcessing() {
         const url = document.getElementById("urlInput").value.trim();
-        if (!url) {
-            showPopup("⚠️ ইউটিউব লিংক দিন");
-            return;
-        }
+        if (!url) return;
 
-        const status = document.getElementById("status");
-        const dropdown = document.getElementById("format-options");
-        status.textContent = "⏳ প্রসেসিং হচ্ছে...";
-        dropdown.classList.add("hidden");
-        dropdown.setAttribute("aria-hidden", "true");
+        document.getElementById("processing").classList.remove("hidden");
+        document.getElementById("format-options").classList.add("hidden");
 
-        try {
-            const res = await fetch("/prepare", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url })
-            });
-            const data = await res.json();
+        fetch("/prepare", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("processing").classList.add("hidden");
 
-            if (data.title) document.getElementById("videoTitle").textContent = `🎬 ${data.title}`;
+            if (data.title) document.getElementById("videoTitle").textContent = data.title;
             if (data.thumbnail) document.getElementById("thumb").src = data.thumbnail;
 
             if (data.ready) {
-                status.textContent = "✅ ফাইল প্রস্তুত!";
-                dropdown.classList.remove("hidden");
-                dropdown.setAttribute("aria-hidden", "false");
-                showPopup("আপনার ফাইল প্রস্তুত হয়েছে! এখন ফরম্যাট নির্বাচন করে ডাউনলোড করুন।");
-            } else {
-                status.textContent = "❌ ডাউনলোড ব্যর্থ হয়েছে";
-                showPopup("ডাউনলোড ব্যর্থ হয়েছে। লিংকটি যাচাই করে আবার চেষ্টা করুন।");
+                document.getElementById("format-options").classList.remove("hidden");
             }
-        } catch (e) {
-            status.textContent = "❌ সার্ভার ত্রুটি";
-            showPopup("সার্ভার বা নেটওয়ার্ক সমস্যা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।");
-        }
+        })
+        .catch(() => {
+            document.getElementById("processing").classList.add("hidden");
+        });
     }
 
     function download(type) {
         window.location.href = `/download?type=${encodeURIComponent(type)}`;
     }
 
-    // Init
     window.addEventListener("DOMContentLoaded", initTheme);
     </script>
 </body>
