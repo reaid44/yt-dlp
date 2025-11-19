@@ -91,18 +91,6 @@ body.light {
     color: #ccc;
 }
 
-.input-group button {
-    background: var(--accent);
-    border: none;
-    padding: 10px 14px;
-    cursor: pointer;
-}
-
-.arrow-icon {
-    width: 24px;
-    height: 24px;
-}
-
 /* Processing Animation */
 .processing {
     display: flex;
@@ -133,35 +121,46 @@ body.light {
     50% { transform: translateY(-12px); }
 }
 
-/* Format Buttons */
-.dropdown {
-    display: flex;
-    justify-content: space-around;
-    margin: 20px 0;
-}
-
-.dropdown.hidden {
-    display: none;
-}
-
-.btn-primary {
-    flex: 1;
-    margin: 0 5px;
-    padding: 12px;
+/* Arrow Icon (pure CSS animated) */
+.arrow-anim {
+    width: 40px;
+    height: 40px;
+    background: transparent;
     border: none;
-    border-radius: 10px;
-    background: var(--accent);
-    color: #fff;
-    font-weight: bold;
+    position: relative;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Preview */
-.preview img {
-    width: 100%;
-    max-width: 320px;
-    border-radius: 12px;
-    margin-top: 10px;
+.arrow-anim::before {
+    content: "";
+    position: absolute;
+    width: 60%;
+    height: 3px;
+    background: var(--accent);
+    left: 20%;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
-.video-title {
+.arrow-anim::after {
+    content: "";
+    position: absolute;
+    right: 8%;
+    top: 50%;
+    width: 40%;
+    height: 40%;
+    border-top: 3px solid var(--accent);
+    border-right: 3px solid var(--accent);
+    transform: translateY(-50%) rotate(45deg);
+}
+
+/* Arrow animation (nudge forward) */
+.arrow-anim {
+    animation: arrow-nudge 1.2s ease-in-out infinite;
+}
+
+@keyframes arrow-nudge {
+    0%   { transform: translateX(0
