@@ -1,4 +1,4 @@
-/* Reset */
+/* Base Reset */
 * {
   margin: 0;
   padding: 0;
@@ -8,11 +8,11 @@
 
 /* Theme Variables */
 body {
-  --bg: linear-gradient(135deg, #0f2027, #203a43, #2c5364); /* Dark gradient */
-  --text: #f5f5f5;
-  --accent: #00c6ff; /* Cyan accent */
-  --card: rgba(255,255,255,0.06);
-  --shadow: 0 8px 24px rgba(0,0,0,0.5);
+  --bg: linear-gradient(135deg, #1f1c2c, #928dab);
+  --text: #fff;
+  --accent: #ffcc00;
+  --card: rgba(255,255,255,0.08);
+  --shadow: 0 8px 24px rgba(0,0,0,0.4);
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -23,10 +23,10 @@ body {
 }
 
 body.light {
-  --bg: linear-gradient(135deg, #ece9e6, #ffffff); /* Light gradient */
+  --bg: linear-gradient(135deg, #fdfbfb, #ebedee);
   --text: #222;
-  --accent: #0078d7; /* Blue accent */
-  --card: #ffffff;
+  --accent: #0078d7;
+  --card: rgba(255,255,255,0.95);
   --shadow: 0 8px 24px rgba(0,0,0,0.1);
 }
 
@@ -62,10 +62,6 @@ body.light {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
-  transition: background 0.3s ease;
-}
-.theme-toggle:hover {
-  background: #005f99;
 }
 
 /* Subtitle */
@@ -95,60 +91,16 @@ body.light {
   color: #ccc;
 }
 
-/* Arrow Button (pure CSS) */
-.arrow {
-  width: 48px;
-  height: 48px;
-  background: transparent;
-  border: none;
-  position: relative;
-  cursor: pointer;
-}
-
-.arrow::before {
-  content: "";
-  position: absolute;
-  left: 20%;
-  top: 50%;
-  width: 0;
-  height: 3px;
-  background: var(--accent);
-  transform: translateY(-50%);
-  transition: width 0.4s ease;
-}
-
-.arrow::after {
-  content: "";
-  position: absolute;
-  right: 8%;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  border-top: 3px solid var(--accent);
-  border-right: 3px solid var(--accent);
-  transform: translateY(-50%) rotate(45deg);
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.arrow:active::before {
-  width: 60%;
-}
-.arrow:active::after {
-  opacity: 1;
-}
-
 /* Processing Animation */
 .processing {
   display: flex;
   justify-content: center;
   gap: 12px;
   margin: 20px 0;
-  opacity: 0;
-  transition: opacity 0.4s ease;
 }
-.processing.show {
-  opacity: 1;
+
+.processing.hidden {
+  display: none;
 }
 
 .dot {
@@ -158,6 +110,7 @@ body.light {
   background: var(--accent);
   animation: bounce 1.2s infinite ease-in-out;
 }
+
 .dot:nth-child(2) { animation-delay: 0.2s; }
 .dot:nth-child(3) { animation-delay: 0.4s; }
 .dot:nth-child(4) { animation-delay: 0.6s; }
@@ -168,54 +121,46 @@ body.light {
   50% { transform: translateY(-12px); }
 }
 
-/* Format Options */
-.dropdown {
-  display: flex;
-  justify-content: space-around;
-  margin: 20px 0;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.4s ease;
-}
-.dropdown.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.btn-primary {
-  flex: 1;
-  margin: 0 5px;
-  padding: 12px;
+/* Arrow Icon (pure CSS animated) */
+.arrow-anim {
+  width: 40px;
+  height: 40px;
+  background: transparent;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent), #005f99);
-  color: #fff;
-  font-weight: bold;
+  position: relative;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Preview */
-.preview img {
-  width: 100%;
-  max-width: 320px;
-  border-radius: 12px;
-  margin-top: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+.arrow-anim::before {
+  content: "";
+  position: absolute;
+  width: 60%;
+  height: 3px;
+  background: var(--accent);
+  left: 20%;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.video-title {
-  margin-top: 8px;
-  font-weight: 600;
+.arrow-anim::after {
+  content: "";
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  width: 40%;
+  height: 40%;
+  border-top: 3px solid var(--accent);
+  border-right: 3px solid var(--accent);
+  transform: translateY(-50%) rotate(45deg);
 }
 
-/* Footer */
-.footer {
-  margin-top: 20px;
-  font-size: 0.9rem;
-  color: var(--accent);
+/* Arrow animation (nudge forward) */
+.arrow-anim {
+  animation: arrow-nudge 1.2s ease-in-out infinite;
 }
+
+@keyframes arrow-nudge {
+  0%
