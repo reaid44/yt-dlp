@@ -18,9 +18,8 @@
 
         <div class="input-group">
             <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
-            <button type="button" class="arrow" onclick="startProcessing()">
-                <img src="/static/icons/red-arrow.png" alt="Arrow" class="arrow-icon">
-            </button>
+            <!-- Pure CSS arrow button -->
+            <button type="button" class="arrow-anim" onclick="startProcessing()" aria-label="প্রসেস শুরু"></button>
         </div>
 
         <!-- Processing Animation -->
@@ -47,7 +46,7 @@
     </div>
 
     <footer class="footer">
-        <p>Version v2.3</p>
+        <p>Version v2.4</p>
     </footer>
 
     <script>
@@ -74,20 +73,21 @@
         if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark");
     });
 
-    function startProcessing() {
+    async function startProcessing() {
         const url = document.getElementById("urlInput").value.trim();
         if (!url) return;
 
         document.getElementById("processing").classList.remove("hidden");
         document.getElementById("format-options").classList.add("hidden");
 
-        fetch("/prepare", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url })
-        })
-        .then(res => res.json())
-        .then(data => {
+        try {
+            const res = await fetch("/prepare", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+            const data = await res.json();
+
             document.getElementById("processing").classList.add("hidden");
 
             if (data.title) document.getElementById("videoTitle").textContent = data.title;
@@ -96,10 +96,9 @@
             if (data.ready) {
                 document.getElementById("format-options").classList.remove("hidden");
             }
-        })
-        .catch(() => {
+        } catch {
             document.getElementById("processing").classList.add("hidden");
-        });
+        }
     }
 
     function download(type) {
