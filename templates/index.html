@@ -1,111 +1,111 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <title>REAID SARDAR — Downloader v2.4</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <title>REAID SARDAR — Downloader v2.3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header class="topbar">
-            <h1>DOWNLOAD</h1>
-            <button class="theme-toggle" id="themeToggle">থিম</button>
-        </header>
+  <div class="container">
+    <header class="topbar">
+      <h1>DOWNLOAD</h1>
+      <button class="theme-toggle" id="themeToggle">থিম</button>
+    </header>
 
-        <p class="subtitle">ইউটিউব লিংক দিন, তারপর প্রেস করুন</p>
+    <p class="subtitle">ইউটিউব লিংক দিন, তারপর প্রেস করুন</p>
 
-        <div class="input-group">
-            <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
-            <!-- Pure CSS arrow button -->
-            <button type="button" class="arrow-anim" onclick="startProcessing()" aria-label="প্রসেস শুরু"></button>
-        </div>
-
-        <!-- Processing Animation -->
-        <div id="processing" class="processing hidden" aria-hidden="true">
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-
-        <!-- Format Options -->
-        <div id="format-options" class="dropdown hidden" aria-hidden="true">
-            <button onclick="download('mp4')" class="btn-primary">MP4</button>
-            <button onclick="download('mp3')" class="btn-primary">MP3</button>
-            <button onclick="download('both')" class="btn-primary">MP4-MP3</button>
-        </div>
-
-        <!-- Preview -->
-        <div class="preview">
-            <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল" id="thumb">
-            <p class="video-title" id="videoTitle">Big Buck Bunny UHD</p>
-        </div>
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
+      <!-- Arrow button pure CSS -->
+      <button type="button" class="arrow-anim" onclick="startProcessing()" aria-label="প্রসেস শুরু"></button>
     </div>
 
-    <footer class="footer">
-        <p>Version v2.4</p>
-    </footer>
+    <!-- Processing Animation -->
+    <div id="processing" class="processing hidden" aria-hidden="true">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
 
-    <script>
+    <!-- Format Options -->
+    <div id="format-options" class="dropdown hidden" aria-hidden="true">
+      <button onclick="download('mp4')" class="btn-primary">MP4</button>
+      <button onclick="download('mp3')" class="btn-primary">MP3</button>
+      <button onclick="download('both')" class="btn-primary">MP4-MP3</button>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview">
+      <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল" id="thumb">
+      <p class="video-title" id="videoTitle">Big Buck Bunny UHD</p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Version v2.3</p>
+  </footer>
+
+  <script>
     const themeToggle = document.getElementById("themeToggle");
     const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
 
     function applyTheme(theme) {
-        document.body.classList.toggle("light", theme === "light");
-        localStorage.setItem("theme", theme);
-        themeToggle.textContent = theme === "light" ? "লাইট" : "ডার্ক";
+      document.body.classList.toggle("light", theme === "light");
+      localStorage.setItem("theme", theme);
+      themeToggle.textContent = theme === "light" ? "লাইট" : "ডার্ক";
     }
 
     function initTheme() {
-        const saved = localStorage.getItem("theme");
-        applyTheme(saved || (prefersLight.matches ? "light" : "dark"));
+      const saved = localStorage.getItem("theme");
+      applyTheme(saved || (prefersLight.matches ? "light" : "dark"));
     }
 
     themeToggle.addEventListener("click", () => {
-        const current = document.body.classList.contains("light") ? "light" : "dark";
-        applyTheme(current === "light" ? "dark" : "light");
+      const current = document.body.classList.contains("light") ? "light" : "dark";
+      applyTheme(current === "light" ? "dark" : "light");
     });
 
     prefersLight.addEventListener("change", e => {
-        if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark");
+      if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark");
     });
 
     async function startProcessing() {
-        const url = document.getElementById("urlInput").value.trim();
-        if (!url) return;
+      const url = document.getElementById("urlInput").value.trim();
+      if (!url) return;
 
-        document.getElementById("processing").classList.remove("hidden");
-        document.getElementById("format-options").classList.add("hidden");
+      document.getElementById("processing").classList.remove("hidden");
+      document.getElementById("format-options").classList.add("hidden");
 
-        try {
-            const res = await fetch("/prepare", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url })
-            });
-            const data = await res.json();
+      try {
+        const res = await fetch("/prepare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
 
-            document.getElementById("processing").classList.add("hidden");
+        document.getElementById("processing").classList.add("hidden");
 
-            if (data.title) document.getElementById("videoTitle").textContent = data.title;
-            if (data.thumbnail) document.getElementById("thumb").src = data.thumbnail;
+        if (data.title) document.getElementById("videoTitle").textContent = data.title;
+        if (data.thumbnail) document.getElementById("thumb").src = data.thumbnail;
 
-            if (data.ready) {
-                document.getElementById("format-options").classList.remove("hidden");
-            }
-        } catch {
-            document.getElementById("processing").classList.add("hidden");
+        if (data.ready) {
+          document.getElementById("format-options").classList.remove("hidden");
         }
+      } catch {
+        document.getElementById("processing").classList.add("hidden");
+      }
     }
 
     function download(type) {
-        window.location.href = `/download?type=${encodeURIComponent(type)}`;
+      window.location.href = `/download?type=${encodeURIComponent(type)}`;
     }
 
     window.addEventListener("DOMContentLoaded", initTheme);
-    </script>
+  </script>
 </body>
 </html>
