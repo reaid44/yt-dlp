@@ -1,24 +1,34 @@
-from flask import Flask, render_template, request, send_file, jsonify
-import os, shutil, socket, sys, subprocess
+import os
+import sys
+import socket
+import subprocess
+
+from flask import Flask, request, send_file, jsonify, render_template
 import yt_dlp
+
 
 # ==================== yt-dlp auto-update ====================
 def auto_update_ytdlp():
+    """Update yt-dlp automatically when server starts."""
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"])
+        subprocess.check_call([
+            sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"
+        ])
         import yt_dlp.version
         print(f"yt-dlp updated to version: {yt_dlp.version.__version__}")
     except Exception as e:
         print(f"yt-dlp auto-update failed: {e}")
 
+
 # ==================== Flask setup ====================
 app = Flask(__name__)
-last_files = {}  # {'mp4': path, 'mp3': path}
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+
 # ==================== IP helper ====================
 def get_ip():
+    """Return local IP address for server info."""
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
@@ -29,14 +39,24 @@ def get_ip():
         s.close()
     return ip
 
+
 # ==================== routes ====================
 @app.route("/")
 def index():
     return render_template("index.html")
 
-# Fetch title/channel/thumbnail/duration only (no download)
+
+@app.route("/favicon.ico")
+def favicon():
+    path = os.path.join(app.root_path, "static", "favicon.ico")
+    if os.path.exists(path):
+        return send_file(path, mimetype="image/vnd.microsoft.icon")
+    return ("", 204)
+
+
 @app.route("/fetch_info", methods=["POST"])
 def fetch_info():
+    """Fetch video info (title, channel, thumbnail, duration)."""
     data = request.get_json(force=True) or {}
     url = data.get("url")
     if not url:
@@ -47,7 +67,7 @@ def fetch_info():
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True,
-            # reduce JS runtime warnings without installing Node
+            # Reduce JS runtime warnings while keeping YouTube working
             "extractor_args": {"youtube": {"player_client": ["default"]}},
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -59,35 +79,33 @@ def fetch_info():
                 "duration": info.get("duration", 0)
             })
     except Exception as e:
-        return jsonify({"error": f"{e}"}), 400
+        return jsonify({"error": str(e)}), 400
 
-# Prepare download (video/audio) with resolution/bitrate
-@app.route("/prepare", methods=["POST"])
-def prepare():
+
+@app.route("/download", methods=["POST"])
+def download():
+    """Download video or audio with resolution/bitrate options."""
     data = request.get_json(force=True) or {}
     url = data.get("url")
-    type_ = data.get("type", "mp4")        # "mp4" or "mp3"
-    res = str(data.get("res", "")).strip() # e.g., "360","720","1080","2160"
-    bitrate = str(data.get("bitrate", "192")).strip()  # e.g., "192","256","320","350"
+    type_ = (data.get("type", "mp4") or "mp4").lower()         # "mp4" or "mp3"
+    res = str(data.get("res", "1080")).strip()                 # 144/240/360/480/720/1080/2160...
+    bitrate = str(data.get("bitrate", "192")).strip()          # 128/192/256/320/350...
 
     if not url:
-        return jsonify({"ready": False, "error": "URL required"}), 400
+        return jsonify({"error": "URL required"}), 400
 
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
-    # Build format string and postprocessors
-    if type_.lower() == "mp3":
+    if type_ == "mp3":
         format_str = "bestaudio/best"
         postprocessors = [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
-            "preferredquality": bitrate,  # 192, 256, 320, 350
+            "preferredquality": bitrate,
         }]
         merge_format = None
     else:
-        # video mp4 with optional max height
         if res.isdigit():
-            format_str = f"bestvideo[height<={res}]+bestaudio/best/best"
+            # limit max height to requested resolution
+            format_str = f"bestvideo[height<={res}]+bestaudio/best"
         else:
             format_str = "bestvideo+bestaudio/best"
         postprocessors = []
@@ -101,7 +119,7 @@ def prepare():
         "ignoreerrors": True,
         "noplaylist": True,
         "quiet": True,
-        # keep YouTube working without JS runtime
+        # Keep YouTube working without installing Node
         "extractor_args": {"youtube": {"player_client": ["default"]}},
     }
 
@@ -109,38 +127,25 @@ def prepare():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
-
-            # finalize mp3 filename if audio mode
-            if type_.lower() == "mp3":
+            if type_ == "mp3":
                 filename = filename.rsplit(".", 1)[0] + ".mp3"
 
-            # store last files
-            if type_.lower() == "mp4":
-                last_files["mp4"] = filename
-                # optional parallel mp3 generation from the same mp4 if requested via bitrate-only later
-            elif type_.lower() == "mp3":
-                last_files["mp3"] = filename
-
-        return jsonify({"ready": True})
+        return send_file(
+            filename,
+            as_attachment=True,
+            download_name=os.path.basename(filename)
+        )
     except Exception as e:
-        return jsonify({"ready": False, "error": f"{e}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# Download prepared file
-@app.route("/download")
-def download():
-    file_type = (request.args.get("type") or "").lower()
-    path = last_files.get(file_type)
-    if not path or not os.path.exists(path):
-        return "File not ready", 404
-    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
 
-# ==================== run ====================
+# ==================== run server ====================
 if __name__ == "__main__":
     auto_update_ytdlp()
     ip = get_ip()
     print(f"Flask server running at: http://{ip}:5000")
-    # optional: write IP for Android Termux convenience
     try:
+        # Helpful for Android/Termux
         with open("/sdcard/flask_ip.txt", "w") as f:
             f.write(f"http://{ip}:5000")
         print("IP written to /sdcard/flask_ip.txt")
