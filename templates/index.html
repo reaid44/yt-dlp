@@ -1,111 +1,151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="bn">
 <head>
-  <meta charset="UTF-8">
-  <title>REAID SARDAR — Downloader v2.3</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <meta charset="utf-8">
+  <title>ClassicTube Downloader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 720px; }
+    h1 { margin-bottom: 8px; }
+    .box { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 12px; }
+    label { display: block; margin: 8px 0 4px; font-weight: 600; }
+    input, select, button { padding: 10px; font-size: 15px; width: 100%; box-sizing: border-box; }
+    button { cursor: pointer; background: #0a84ff; color: #fff; border: none; border-radius: 6px; margin-top: 12px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .thumb { width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #eee; }
+    .status { margin-top: 8px; color: #555; font-size: 14px; }
+    .error { color: #b00020; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <header class="topbar">
-      <h1>DOWNLOAD</h1>
-      <button class="theme-toggle" id="themeToggle">থিম</button>
-    </header>
+  <h1>ClassicTube Downloader</h1>
+  <p class="status">URL দিন, তারপর ভিডিও বা অডিও বেছে নিন। থাম্বেল শুধু দেখানো হবে, ডাউনলোড না।</p>
 
-    <p class="subtitle">ইউটিউব লিংক দিন, তারপর প্রেস করুন</p>
+  <div class="box">
+    <label>ভিডিও URL</label>
+    <input id="url" type="text" placeholder="https://youtu.be/...">
 
-    <div class="input-group">
-      <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
-      <!-- Arrow button pure CSS -->
-      <button type="button" class="arrow-anim" onclick="startProcessing()" aria-label="প্রসেস শুরু"></button>
-    </div>
+    <button id="infoBtn">ইনফো দেখুন</button>
 
-    <!-- Processing Animation -->
-    <div id="processing" class="processing hidden" aria-hidden="true">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-    </div>
-
-    <!-- Format Options -->
-    <div id="format-options" class="dropdown hidden" aria-hidden="true">
-      <button onclick="download('mp4')" class="btn-primary">MP4</button>
-      <button onclick="download('mp3')" class="btn-primary">MP3</button>
-      <button onclick="download('both')" class="btn-primary">MP4-MP3</button>
-    </div>
-
-    <!-- Preview -->
-    <div class="preview">
-      <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল" id="thumb">
-      <p class="video-title" id="videoTitle">Big Buck Bunny UHD</p>
+    <div id="infoBox" style="display:none;">
+      <p id="title"></p>
+      <p id="channel"></p>
+      <img id="thumb" class="thumb" alt="thumbnail">
+      <p id="duration"></p>
     </div>
   </div>
 
-  <footer class="footer">
-    <p>Version v2.3</p>
-  </footer>
+  <div class="box">
+    <div class="row">
+      <div>
+        <label>টাইপ</label>
+        <select id="type">
+          <option value="mp4">ভিডিও (mp4)</option>
+          <option value="mp3">অডিও (mp3)</option>
+        </select>
+      </div>
+      <div>
+        <label>ভিডিও রেজুলেশন (mp4)</label>
+        <select id="res">
+          <option value="2160">2160p (4K)</option>
+          <option value="1440">1440p</option>
+          <option value="1080" selected>1080p</option>
+          <option value="720">720p</option>
+          <option value="480">480p</option>
+          <option value="360">360p</option>
+          <option value="240">240p</option>
+          <option value="144">144p</option>
+        </select>
+      </div>
+    </div>
+
+    <label>অডিও বিটরেট (mp3)</label>
+    <select id="bitrate">
+      <option value="350">350k</option>
+      <option value="320" selected>320k</option>
+      <option value="256">256k</option>
+      <option value="192">192k</option>
+      <option value="128">128k</option>
+    </select>
+
+    <button id="dlBtn">ডাউনলোড</button>
+    <p id="msg" class="status"></p>
+    <p id="err" class="status error"></p>
+  </div>
 
   <script>
-    const themeToggle = document.getElementById("themeToggle");
-    const prefersLight = window.matchMedia("(prefers-color-scheme: light)");
+    const $ = (id) => document.getElementById(id);
 
-    function applyTheme(theme) {
-      document.body.classList.toggle("light", theme === "light");
-      localStorage.setItem("theme", theme);
-      themeToggle.textContent = theme === "light" ? "লাইট" : "ডার্ক";
-    }
-
-    function initTheme() {
-      const saved = localStorage.getItem("theme");
-      applyTheme(saved || (prefersLight.matches ? "light" : "dark"));
-    }
-
-    themeToggle.addEventListener("click", () => {
-      const current = document.body.classList.contains("light") ? "light" : "dark";
-      applyTheme(current === "light" ? "dark" : "light");
-    });
-
-    prefersLight.addEventListener("change", e => {
-      if (!localStorage.getItem("theme")) applyTheme(e.matches ? "light" : "dark");
-    });
-
-    async function startProcessing() {
-      const url = document.getElementById("urlInput").value.trim();
-      if (!url) return;
-
-      document.getElementById("processing").classList.remove("hidden");
-      document.getElementById("format-options").classList.add("hidden");
+    $('infoBtn').onclick = async () => {
+      const url = $('url').value.trim();
+      $('err').textContent = '';
+      $('msg').textContent = 'ইনফো লোড হচ্ছে...';
 
       try {
-        const res = await fetch("/prepare", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/fetch_info', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ url })
         });
         const data = await res.json();
+        if (data.error) throw new Error(data.error);
 
-        document.getElementById("processing").classList.add("hidden");
-
-        if (data.title) document.getElementById("videoTitle").textContent = data.title;
-        if (data.thumbnail) document.getElementById("thumb").src = data.thumbnail;
-
-        if (data.ready) {
-          document.getElementById("format-options").classList.remove("hidden");
-        }
-      } catch {
-        document.getElementById("processing").classList.add("hidden");
+        $('title').textContent = `শিরোনাম: ${data.title}`;
+        $('channel').textContent = `চ্যানেল: ${data.channel}`;
+        $('duration').textContent = `সময়: ${data.duration}s`;
+        $('thumb').src = data.thumbnail || '';
+        $('infoBox').style.display = 'block';
+        $('msg').textContent = 'ইনফো ঠিক আছে।';
+      } catch (e) {
+        $('err').textContent = 'ইনফো আনতে সমস্যা: ' + e.message;
+        $('msg').textContent = '';
       }
-    }
+    };
 
-    function download(type) {
-      window.location.href = `/download?type=${encodeURIComponent(type)}`;
-    }
+    $('dlBtn').onclick = async () => {
+      const url = $('url').value.trim();
+      const type = $('type').value;
+      const resSel = $('res').value;
+      const bitrate = $('bitrate').value;
 
-    window.addEventListener("DOMContentLoaded", initTheme);
+      $('err').textContent = '';
+      $('msg').textContent = 'ডাউনলোড শুরু হচ্ছে...';
+
+      try {
+        const resp = await fetch('/download', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            url,
+            type,
+            res: resSel,
+            bitrate
+          })
+        });
+
+        if (!resp.ok) {
+          const data = await resp.json().catch(() => ({}));
+          throw new Error(data.error || ('HTTP ' + resp.status));
+        }
+
+        // Save as file using browser
+        const blob = await resp.blob();
+        const a = document.createElement('a');
+        const urlBlob = URL.createObjectURL(blob);
+        a.href = urlBlob;
+        a.download = 'download'; // server sets real filename via send_file
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(urlBlob);
+
+        $('msg').textContent = 'ডাউনলোড সম্পন্ন বা চলছে (ব্রাউজার দেখাবে)।';
+      } catch (e) {
+        $('err').textContent = 'ডাউনলোডে সমস্যা: ' + e.message;
+        $('msg').textContent = '';
+      }
+    };
   </script>
 </body>
 </html>
