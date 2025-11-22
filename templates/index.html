@@ -1,151 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="bn">
 <head>
-  <meta charset="utf-8">
-  <title>ClassicTube Downloader</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; max-width: 720px; }
-    h1 { margin-bottom: 8px; }
-    .box { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-top: 12px; }
-    label { display: block; margin: 8px 0 4px; font-weight: 600; }
-    input, select, button { padding: 10px; font-size: 15px; width: 100%; box-sizing: border-box; }
-    button { cursor: pointer; background: #0a84ff; color: #fff; border: none; border-radius: 6px; margin-top: 12px; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .thumb { width: 100%; max-height: 220px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #eee; }
-    .status { margin-top: 8px; color: #555; font-size: 14px; }
-    .error { color: #b00020; }
-  </style>
+    <meta charset="UTF-8">
+    <title>ইউটিউব ডাউনলোডার</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <h1>ClassicTube Downloader</h1>
-  <p class="status">URL দিন, তারপর ভিডিও বা অডিও বেছে নিন। থাম্বেল শুধু দেখানো হবে, ডাউনলোড না।</p>
+    <div class="container">
+        <h1>📥 ইউটিউব ভিডিও ডাউনলোড করুন</h1>
 
-  <div class="box">
-    <label>ভিডিও URL</label>
-    <input id="url" type="text" placeholder="https://youtu.be/...">
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="ইউটিউব লিংক দিন..." required>
+            <button type="button" class="arrow" onclick="startProcessing()">
+                <img src="/static/icons/red-arrow.png" alt="Arrow" class="arrow-icon">
+            </button>
+        </div>
 
-    <button id="infoBtn">ইনফো দেখুন</button>
+        <div id="status" class="status-text">⏳ প্রসেসিং হচ্ছে<span id="dots"></span></div>
 
-    <div id="infoBox" style="display:none;">
-      <p id="title"></p>
-      <p id="channel"></p>
-      <img id="thumb" class="thumb" alt="thumbnail">
-      <p id="duration"></p>
+        <div id="format-options" class="dropdown hidden">
+            <button onclick="download('mp4')">🎥 MP4</button>
+            <button onclick="download('mp3')">🔊 MP3</button>
+            <button onclick="download('both')">🎬 MP4-MP3</button>
+        </div>
+
+        <div class="preview">
+            <img src="/static/thumbnail.jpg" alt="ভিডিও থাম্বনেইল">
+            <p class="video-title">🎬 Big Buck Bunny UHD</p>
+        </div>
+
+        <script>
+            let dotCount = 0;
+            setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                document.getElementById("dots").innerText = ".".repeat(dotCount);
+            }, 500);
+
+            function startProcessing() {
+                const url = document.getElementById("urlInput").value;
+                if (!url) return alert("⚠️ ইউটিউব লিংক দিন");
+
+                document.getElementById("status").innerText = "⏳ প্রসেসিং হচ্ছে...";
+                document.getElementById("format-options").classList.add("hidden");
+
+                fetch("/prepare", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ready) {
+                        document.getElementById("status").innerText = "✅ ফাইল প্রস্তুত!";
+                        document.getElementById("format-options").classList.remove("hidden");
+                    } else {
+                        document.getElementById("status").innerText = "❌ ডাউনলোড ব্যর্থ হয়েছে";
+                    }
+                });
+            }
+
+            function download(type) {
+                window.location.href = `/download?type=${type}`;
+            }
+        </script>
     </div>
-  </div>
-
-  <div class="box">
-    <div class="row">
-      <div>
-        <label>টাইপ</label>
-        <select id="type">
-          <option value="mp4">ভিডিও (mp4)</option>
-          <option value="mp3">অডিও (mp3)</option>
-        </select>
-      </div>
-      <div>
-        <label>ভিডিও রেজুলেশন (mp4)</label>
-        <select id="res">
-          <option value="2160">2160p (4K)</option>
-          <option value="1440">1440p</option>
-          <option value="1080" selected>1080p</option>
-          <option value="720">720p</option>
-          <option value="480">480p</option>
-          <option value="360">360p</option>
-          <option value="240">240p</option>
-          <option value="144">144p</option>
-        </select>
-      </div>
-    </div>
-
-    <label>অডিও বিটরেট (mp3)</label>
-    <select id="bitrate">
-      <option value="350">350k</option>
-      <option value="320" selected>320k</option>
-      <option value="256">256k</option>
-      <option value="192">192k</option>
-      <option value="128">128k</option>
-    </select>
-
-    <button id="dlBtn">ডাউনলোড</button>
-    <p id="msg" class="status"></p>
-    <p id="err" class="status error"></p>
-  </div>
-
-  <script>
-    const $ = (id) => document.getElementById(id);
-
-    $('infoBtn').onclick = async () => {
-      const url = $('url').value.trim();
-      $('err').textContent = '';
-      $('msg').textContent = 'ইনফো লোড হচ্ছে...';
-
-      try {
-        const res = await fetch('/fetch_info', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ url })
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-
-        $('title').textContent = `শিরোনাম: ${data.title}`;
-        $('channel').textContent = `চ্যানেল: ${data.channel}`;
-        $('duration').textContent = `সময়: ${data.duration}s`;
-        $('thumb').src = data.thumbnail || '';
-        $('infoBox').style.display = 'block';
-        $('msg').textContent = 'ইনফো ঠিক আছে।';
-      } catch (e) {
-        $('err').textContent = 'ইনফো আনতে সমস্যা: ' + e.message;
-        $('msg').textContent = '';
-      }
-    };
-
-    $('dlBtn').onclick = async () => {
-      const url = $('url').value.trim();
-      const type = $('type').value;
-      const resSel = $('res').value;
-      const bitrate = $('bitrate').value;
-
-      $('err').textContent = '';
-      $('msg').textContent = 'ডাউনলোড শুরু হচ্ছে...';
-
-      try {
-        const resp = await fetch('/download', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            url,
-            type,
-            res: resSel,
-            bitrate
-          })
-        });
-
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          throw new Error(data.error || ('HTTP ' + resp.status));
-        }
-
-        // Save as file using browser
-        const blob = await resp.blob();
-        const a = document.createElement('a');
-        const urlBlob = URL.createObjectURL(blob);
-        a.href = urlBlob;
-        a.download = 'download'; // server sets real filename via send_file
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(urlBlob);
-
-        $('msg').textContent = 'ডাউনলোড সম্পন্ন বা চলছে (ব্রাউজার দেখাবে)।';
-      } catch (e) {
-        $('err').textContent = 'ডাউনলোডে সমস্যা: ' + e.message;
-        $('msg').textContent = '';
-      }
-    };
-  </script>
 </body>
 </html>
