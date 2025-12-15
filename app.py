@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request, send_file, jsonify
-import os, shutil, socket, sys, subprocess
+import os, shutil, subprocess
 import yt_dlp
 
-# ✅ yt-dlp অটো আপডেট
+app = Flask(__name__)
+last_files = {}
+
+# ✅ yt-dlp auto update
 def auto_update_ytdlp():
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "yt-dlp"])
@@ -10,20 +13,6 @@ def auto_update_ytdlp():
         print(f"✅ yt-dlp updated to version: {yt_dlp.version.__version__}")
     except Exception as e:
         print(f"⚠️ yt-dlp auto-update failed: {e}")
-
-app = Flask(__name__)
-last_files = {}
-
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = "127.0.0.1"
-    finally:
-        s.close()
-    return ip
 
 @app.route('/')
 def index():
@@ -43,7 +32,7 @@ def prepare():
             'format': format_str,
             'outtmpl': outtmpl,
             'quiet': True,
-            'noplaylist': True  # ✅ টাইম কমানোর জন্য
+            'noplaylist': True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -51,12 +40,13 @@ def prepare():
             mp4_file = ydl.prepare_filename(info)
             last_files['mp4'] = mp4_file
 
-            # ✅ MP3 conversion background এ চালানো হচ্ছে
+            # ✅ Convert to MP3
             mp3_file = mp4_file.replace(".mp4", ".mp3")
             if shutil.which("ffmpeg"):
-                subprocess.Popen([
+                subprocess.run([
                     "ffmpeg", "-i", mp4_file,
-                    "-vn", "-ab", "192k", mp3_file
+                    "-vn", "-ab", "192k", mp3_file,
+                    "-y"
                 ])
                 last_files['mp3'] = mp3_file
 
@@ -68,21 +58,46 @@ def prepare():
 @app.route('/download')
 def download():
     file_type = request.args.get("type")
+
+    # ✅ MP4
     if file_type == "mp4":
-        return send_file(last_files.get("mp4"), as_attachment=True)
+        mp4 = last_files.get("mp4")
+        if not mp4 or not os.path.exists(mp4):
+            return "❌ MP4 file not ready", 404
+        return send_file(mp4, as_attachment=True,
+                         download_name="video.mp4",
+                         mimetype="video/mp4")
+
+    # ✅ MP3
     elif file_type == "mp3":
-        return send_file(last_files.get("mp3"), as_attachment=True)
+        mp3 = last_files.get("mp3")
+        if not mp3 or not os.path.exists(mp3):
+            return "❌ MP3 file not ready", 404
+        return send_file(mp3, as_attachment=True,
+                         download_name="audio.mp3",
+                         mimetype="audio/mpeg")
+
+    # ✅ BOTH → ZIP নয় → দুইটা আলাদা ডাউনলোড
     elif file_type == "both":
-        return "📦 MP4-MP3 combo download not implemented yet", 501
+        mp4 = last_files.get("mp4")
+        mp3 = last_files.get("mp3")
+
+        if not mp4 or not os.path.exists(mp4):
+            return "❌ MP4 file missing", 404
+        if not mp3 or not os.path.exists(mp3):
+            return "❌ MP3 file missing", 404
+
+        # ✅ প্রথমে MP4 পাঠাও
+        # ✅ তারপর JS দিয়ে MP3 auto-download করাও
+        return jsonify({
+            "mp4": "/download?type=mp4",
+            "mp3": "/download?type=mp3"
+        })
+
     return "Invalid type", 400
 
 if __name__ == "__main__":
     auto_update_ytdlp()
-    ip = get_ip()
-    print(f"✅ Flask server running at: http://{ip}:5000")
-    try:
-        with open("/sdcard/flask_ip.txt", "w") as f:
-            f.write(ip)
-    except Exception as e:
-        print(f"⚠️ Could not write IP to file: {e}")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    print("✅ Flask server running at: http://127.0.0.1:5000")
+0")
+    app.run(debug=True, host="0.0.0.0", port=5
