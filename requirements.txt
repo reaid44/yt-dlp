@@ -1,3 +1,5 @@
+Flask>=2.0
+yt-dlp
 gunicorn
 flask
 yt-dlp
