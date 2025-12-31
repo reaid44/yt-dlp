@@ -1,45 +1,39 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <title>ইউটিউব ডাউনলোডার</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YT-DLP Downloader (Real Progress)</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <main class="container">
-        <header>
-            <h1>📥 ভিডিও ডাউনলোড করুন</h1>
-            <p class="lead">yt dl</p>
-        </header>
+  <div class="container">
+    <h1>YT-DLP Downloader</h1>
 
-        <section class="card">
-            <div class="input-row">
-                <input type="text" id="urlInput" placeholder="লিংক দিন..." aria-label="video url">
-                <button id="startBtn" aria-label="Start" title="প্রসেস শুরু করুন">▶️</button>
-            </div>
+    <div class="input-row">
+      <input id="urlInput" type="text" placeholder="YouTube URL paste করুন…">
+      <button id="downloadBtn">Prepare</button>
+    </div>
 
-            <div id="status" class="status">⏳ অপেক্ষা করুন...</div>
+    <div class="meta" id="meta">
+      <img id="thumb" alt="" />
+      <div>
+        <div id="title"></div>
+        <div id="statusText">Status: idle</div>
+      </div>
+    </div>
 
-            <!-- Progress Bar -->
-            <div class="progress-container">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
+    <div id="progressContainer">
+      <div id="progressBar"></div>
+    </div>
+    <div id="progressPercent">0%</div>
 
-            <div id="preview" class="preview hidden">
-                <img id="thumb" src="/static/thumbnail.jpg" alt="Thumbnail">
-                <div class="meta">
-                    <h2 id="videoTitle">ভিডিও শিরোনাম</h2>
-                    <div class="actions" id="format-options">
-                        <a id="mp4Btn" class="btn" href="#">🎥 MP4</a>
-                        <a id="mp3Btn" class="btn" href="#">🔊 MP3</a>
-                        <a id="bothBtn" class="btn" href="#">🔗 লিংক দেখুন</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
+    <div class="actions">
+      <a id="mp4Btn" class="btn" href="#" style="display:none;">Download MP4</a>
+      <a id="mp3Btn" class="btn" href="#" style="display:none;">Download MP3</a>
+    </div>
+  </div>
 
-    <script src="/static/script.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
