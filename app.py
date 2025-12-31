@@ -4,6 +4,7 @@ import yt_dlp
 
 app = Flask(__name__)
 last_files = {}
+progress_data = {"percent": 0, "status": "idle", "title": None, "thumb": None}
 
 # ✅ yt-dlp auto update
 def auto_update_ytdlp():
@@ -14,23 +15,48 @@ def auto_update_ytdlp():
     except Exception as e:
         print(f"⚠️ yt-dlp auto-update failed: {e}")
 
+# ✅ progress hook: updates percent in real time
+def progress_hook(d):
+    if d.get('status') == 'downloading':
+        # Prefer numeric calculation if available
+        total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+        downloaded = d.get('downloaded_bytes') or 0
+        if total and downloaded:
+            pct = (downloaded / total) * 100
+        else:
+            # Fallback to string percent
+            pct_str = d.get('_percent_str', '0.0%').replace('%', '').strip()
+            try:
+                pct = float(pct_str)
+            except:
+                pct = 0.0
+        progress_data["percent"] = round(pct, 2)
+        progress_data["status"] = "downloading"
+    elif d.get('status') == 'finished':
+        progress_data["percent"] = 100.0
+        progress_data["status"] = "finished"
+
 @app.route('/')
 def index():
     return render_template("index.html")
 
 @app.route('/prepare', methods=['POST'])
 def prepare():
-    data = request.get_json()
+    # reset progress for a new request
+    progress_data.update({"percent": 0, "status": "starting", "title": None, "thumb": None})
+
+    data = request.get_json() or {}
     url = data.get("url")
+    if not url:
+        return jsonify({"ready": False, "error": "No URL provided"}), 400
+
     os.makedirs("downloads", exist_ok=True)
 
-    # If ffmpeg is available we can request merging video+audio; otherwise
-    # ask for a single-file format to avoid yt-dlp trying to run ffmpeg.
+    # Detect ffmpeg availability
     has_ffmpeg = shutil.which("ffmpeg") is not None
     if has_ffmpeg:
         format_str = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
     else:
-        # avoid merge formats that require ffmpeg
         format_str = 'best[ext=mp4]/best'
 
     outtmpl = 'downloads/%(id)s - %(title)s.%(ext)s'
@@ -40,18 +66,23 @@ def prepare():
             'format': format_str,
             'outtmpl': outtmpl,
             'quiet': True,
-            'noplaylist': True
+            'noplaylist': True,
+            'progress_hooks': [progress_hook],
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 info = ydl.extract_info(url, download=True)
             except Exception as e:
-                # If yt-dlp failed because ffmpeg is missing and merging was
-                # requested, retry with a safe single-file format to avoid
-                # requiring ffmpeg.
+                # Safe fallback if merge/ffmpeg issues
                 msg = str(e).lower()
-                if ('ffmpeg is not installed' in msg) or ('requested merging' in msg) or ('merging of multiple formats' in msg) or ('--abort-on-error' in msg):
+                needs_simple = (
+                    'ffmpeg is not installed' in msg or
+                    'requested merging' in msg or
+                    'merging of multiple formats' in msg or
+                    '--abort-on-error' in msg
+                )
+                if needs_simple:
                     safe_opts = dict(ydl_opts)
                     safe_opts['format'] = 'best[ext=mp4]/best'
                     with yt_dlp.YoutubeDL(safe_opts) as ydl2:
@@ -60,7 +91,7 @@ def prepare():
                     raise
 
             downloaded_file = ydl.prepare_filename(info)
-            # Save the downloaded filename (may be mp4, webm, m4a, etc.)
+            # Save the downloaded filename (mp4/webm/m4a etc.)
             last_files['mp4'] = downloaded_file
 
             # If ffmpeg is present, create an MP3 from the downloaded file.
@@ -75,12 +106,14 @@ def prepare():
                     ], check=False)
                     if os.path.exists(mp3_file):
                         last_files['mp3'] = mp3_file
-                except Exception as _:
+                except Exception:
                     last_files['mp3'] = None
 
-        # Build a richer response for the UI: include title, thumbnail and available files
+        # Store metadata for UI
         title = info.get('title') if isinstance(info, dict) else None
         thumbnail = info.get('thumbnail') if isinstance(info, dict) else None
+        progress_data["title"] = title
+        progress_data["thumb"] = thumbnail
 
         mp4_exists = os.path.exists(last_files.get('mp4', ''))
         mp3_exists = os.path.exists(last_files.get('mp3', ''))
@@ -94,11 +127,15 @@ def prepare():
             "mp4_url": "/download?type=mp4",
             "mp3_url": "/download?type=mp3"
         }
-
         return jsonify(response)
     except Exception as e:
         print("❌ Error:", e)
-        return jsonify({"ready": False, "error": str(e)})
+        progress_data["status"] = "error"
+        return jsonify({"ready": False, "error": str(e)}), 500
+
+@app.route('/progress')
+def progress():
+    return jsonify(progress_data)
 
 @app.route('/download')
 def download():
@@ -135,42 +172,6 @@ def download():
         })
 
     return "Invalid type", 400
-
-
-@app.route('/open-downloads', methods=['GET', 'POST'])
-def open_downloads():
-    """Attempt to open the downloads folder on the server host.
-
-    Works on Windows, macOS, and common Linux desktops. This is a convenience
-    for local development only; in production this endpoint should be removed
-    or protected.
-    """
-    downloads_dir = os.path.abspath("downloads")
-    os.makedirs(downloads_dir, exist_ok=True)
-
-    try:
-        if platform.system() == "Windows":
-            # Use explorer via subprocess instead of os.startfile to avoid
-            # SystemExit or debugger-related exits when running under debugpy.
-            try:
-                subprocess.Popen(["explorer", downloads_dir])
-            except Exception:
-                # Fallback to os.startfile but protect against SystemExit
-                try:
-                    os.startfile(downloads_dir)
-                except SystemExit:
-                    return jsonify({"opened": False, "error": "SystemExit when opening folder"}), 500
-                except Exception as e:
-                    return jsonify({"opened": False, "error": str(e)}), 500
-        elif platform.system() == "Darwin":
-            subprocess.Popen(["open", downloads_dir])
-        else:
-            # Linux / BSD
-            subprocess.Popen(["xdg-open", downloads_dir])
-        return jsonify({"opened": True})
-    except Exception as e:
-        print("Could not open downloads folder:", e)
-        return jsonify({"opened": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     auto_update_ytdlp()
