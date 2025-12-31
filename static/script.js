@@ -43,7 +43,7 @@ async function pollProgress(stopSignal) {
       return;
     }
   } catch (_) {
-    // Keep polling silently
+    // ignore errors
   }
   setTimeout(() => pollProgress(stopSignal), 600);
 }
@@ -66,7 +66,7 @@ downloadBtn.addEventListener("click", async () => {
   downloadBtn.disabled = true;
 
   const stopSignal = { stopped: false };
-  pollProgress(stopSignal); // start polling in background
+  pollProgress(stopSignal); // start polling
 
   try {
     const res = await fetch("/prepare", {
@@ -76,7 +76,6 @@ downloadBtn.addEventListener("click", async () => {
     });
     const data = await res.json();
 
-    // When backend finishes, it returns metadata and available downloads
     if (data.ready) {
       statusText.textContent = "Status: finished";
       setProgress(100);
